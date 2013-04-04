@@ -1,5 +1,10 @@
+var http = require("http");
 var twitter = require('ntwitter');
-var credentials = require('./credentials.js');
+var redis = require('redis');
+var credentials = require("./credentials.js");
+
+//create redis client
+var client = redis.createClient();
 
 var t = new twitter({
   consumer_key: credentials.consumer_key,
@@ -8,12 +13,37 @@ var t = new twitter({
   access_token_secret: credentials.access_token_secret
 });
 
+http.createServer(function (req, res) {
+  client.get("awesome", function (error, awesomeCount) {
+    if (error !== null) {
+      console.log("error: " + error);
+    } else {
+      res.writeHead(200, {"Content-Type": "text/plain"});
+      res.end("The awesome count is " + awesomeCount);
+    }
+  });
+
+
+  client.get("awesome", function (error, awesomeCount) {
+    if (error !== null) {
+      console.log("error: " + error);
+    } else {
+      res.writeHead(200, {"Content-Type": "text/plain"});
+      res.end("The awesome count is " + awesomeCount);
+    }
+  });
+}).listen(3000);  
+
 t.stream(
   'statuses/filter',
   { track: ['aswesome', 'cool', 'rad', 'gnarly', 'groovy'] },
   function (stream) {
     stream.on('data', function(tweet) {
       console.log(tweet.text);
+      //if awesome is in the tweet text, increment the counter
+      if (tweet.text.indexOf("awesome") > -1) {
+        client.incr('awesome');
+      }
     });
   }
 );
